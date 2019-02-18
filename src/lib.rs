@@ -5,9 +5,45 @@ pub enum Operator {
   Divide,
 }
 
+impl Operator {
+
+  pub fn from(string: &str) -> Result<Self,&'static str> {
+    match string {
+      "+" => Ok(Operator::Plus),
+      "-" => Ok(Operator::Minus),
+      "x" => Ok(Operator::Multiply),
+      "/" => Ok(Operator::Divide),
+      _ => Err("Not a valid string"),
+    }
+  }
+
+
+  pub fn operate(&self, l: i32, r: i32) -> i32{
+    match self {
+      Operator::Plus => l + r,
+      Operator::Minus => l - r,
+      Operator::Multiply => l * r,
+      Operator::Divide => l / r,
+    }
+  }
+}
+
 pub enum Token {
   Operator(Operator),
   Operand(i32),
+}
+
+impl Token {
+
+  pub fn from(string: String) -> Self {
+    match  Operator::from(&string) {
+      Ok(op) => Token::Operator(op),
+      Err(_) => match string.parse::<i32>() {
+          Ok(i) => Token::Operand(i),
+          _ => panic!("Invalid argument: {}", string),
+        }
+    }
+  }
 }
 
 pub struct Expression {
@@ -18,16 +54,7 @@ impl Expression {
   pub fn new(args: std::env::Args) -> Result<Expression, &'static str> {
     let tokens = args
       .skip(1)
-      .map(|it| match &*it {
-        "+" => Token::Operator(Operator::Plus),
-        "-" => Token::Operator(Operator::Minus),
-        "x" => Token::Operator(Operator::Multiply),
-        "/" => Token::Operator(Operator::Divide),
-        s => match s.parse::<i32>() {
-          Ok(i) => Token::Operand(i),
-          _ => panic!("Invalid argument: {}", s),
-        },
-      })
+      .map( Token::from )
       .collect();
 
     Ok(Expression { tokens: tokens })
@@ -40,12 +67,7 @@ impl Expression {
         Token::Operator(op) => {
           if let Some(Token::Operand(r)) = stk.pop() {
             if let Some(Token::Operand(l)) = stk.pop() {
-              match op {
-                Operator::Plus => stk.push(Token::Operand(l + r)),
-                Operator::Minus => stk.push(Token::Operand(l - r)),
-                Operator::Multiply => stk.push(Token::Operand(l * r)),
-                Operator::Divide => stk.push(Token::Operand(l / r)),
-              }
+              stk.push(Token::Operand(op.operate(l,r)))
             }
           }
         }
